@@ -71,4 +71,33 @@ public class ReviewController {
     List<Review> feed =this.repository.findAllByOrderByPostedAtDesc();
     return ResponseEntity.ok(feed);
   }
+
+
+  @DeleteMapping("/{id}")
+  public ResponseEntity deleteReview(@PathVariable Long id){
+    try{
+      User loggedUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+      Review review = repository.findById(id).orElse(null);
+      if (review == null){
+        return ResponseEntity.notFound().build();
+      }
+
+      if (!review.getUser().getId().equals(loggedUser.getId())){
+        return ResponseEntity.status(403).body("Você não tem permissão para excluir este post.");
+      }
+
+      if (review.getImagePath() != null){
+        Path imagePath = Paths.get(UPLOAD_DIR).resolve(review.getImagePath());
+        Files.deleteIfExists(imagePath);
+      }
+
+      this.repository.delete(review);
+      return ResponseEntity.ok("Post excluido com sucesso!");
+
+    } catch (Exception e){
+      e.printStackTrace();
+      return ResponseEntity.badRequest().body("Erro ao excluir o post");
+    }
+  }
 }

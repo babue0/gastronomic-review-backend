@@ -36,9 +36,7 @@ public class Review {
     return Id;
   }
 
-  public void setId(Long id) {
-    Id = id;
-  }
+  public void setId(Long id) { this.Id = id; }
 
   public User getUser() {
     return user;
