@@ -6,6 +6,7 @@ import com.br.reviewgastronomica.repository.ReviewRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -100,4 +101,31 @@ public class ReviewController {
       return ResponseEntity.badRequest().body("Erro ao excluir o post");
     }
   }
+
+
+  @PostMapping("/{id}/like")
+  public ResponseEntity toggleLike(@PathVariable Long id){
+    try{
+      User loggedUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+      Review review = repository.findById(id).orElse(null);
+      if (review == null) return ResponseEntity.notFound().build();
+
+      boolean alreadyLiked = review.getLikedBy().stream()
+              .anyMatch(u -> u.getId().equals(loggedUser.getId()));
+
+      if (alreadyLiked){
+        review.getLikedBy().removeIf(u -> u.getId().equals(loggedUser.getId()));
+      } else {
+        review.getLikedBy().add(loggedUser);
+      }
+
+      this.repository.save(review);
+      return ResponseEntity.ok().build();
+
+    } catch (Exception e) {
+      e.printStackTrace();
+      return ResponseEntity.badRequest().body("Erro ao processar like");
+    }
+  }
+
 }

@@ -4,6 +4,9 @@ import com.br.reviewgastronomica.domain.user.User;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "reviews")
@@ -23,6 +26,15 @@ public class Review {
 
   @Column(columnDefinition = "TEXT")
   private String comment;
+
+  @ManyToMany
+  @JoinTable(
+          name = "review_likes",
+          joinColumns = @JoinColumn(name = "review_id"),
+          inverseJoinColumns = @JoinColumn(name = "user_id")
+  )
+  @com.fasterxml.jackson.annotation.JsonIgnore
+  private Set<User> likedBy = new HashSet<>();
 
   private String imagePath;
 
@@ -93,4 +105,17 @@ public class Review {
   public void setPostedAt(LocalDateTime postedAt) {
     this.postedAt = postedAt;
   }
+
+  public int getLikeCount(){
+    return this.likedBy != null ? this.likedBy.size() : 0;
+  }
+
+  public Set<String> getLikedByEmails(){
+    if (this.likedBy == null) return new HashSet<>();
+
+    return this.likedBy.stream().map(User::getEmail).collect(Collectors.toSet());
+  }
+
+  public Set<User> getLikedBy(){return likedBy;}
+  public void setLikedBy(Set<User> likedBy) {this.likedBy = likedBy;}
 }
