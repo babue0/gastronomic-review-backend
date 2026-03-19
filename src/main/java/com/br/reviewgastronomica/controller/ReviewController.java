@@ -28,6 +28,9 @@ public class ReviewController {
   @Autowired
   private UserRepository userRepository;
 
+  @Autowired
+  private com.cloudinary.Cloudinary cloudinary;
+
   private final String UPLOAD_DIR = "uploads/";
 
   @PostMapping(consumes = "multipart/form-data")
@@ -48,27 +51,24 @@ public class ReviewController {
       newReview.setComment(comment);
 
       if(image != null && !image.isEmpty()){
-        Path uploadPath = Paths.get(UPLOAD_DIR);
-        if (!Files.exists(uploadPath)) {
-          Files.createDirectories(uploadPath);
-        }
 
-        String fileName = UUID.randomUUID().toString() + "_" + image.getOriginalFilename();
-        Path filePath = uploadPath.resolve(fileName);
+        java.util.Map uploadResult = cloudinary.uploader().upload(image.getBytes(), com.cloudinary.utils.ObjectUtils.emptyMap());
 
-        Files.copy(image.getInputStream(), filePath);
 
-        newReview.setImagePath(fileName);
+        String imageUrl = uploadResult.get("secure_url").toString();
+
+
+        newReview.setImagePath(imageUrl);
       }
 
       this.repository.save(newReview);
       return ResponseEntity.ok("Post publicado com sucesso!");
+
     } catch (Exception e) {
       e.printStackTrace();
       return ResponseEntity.badRequest().body("erro ao publicar o post");
     }
   }
-
 
 
   @GetMapping
