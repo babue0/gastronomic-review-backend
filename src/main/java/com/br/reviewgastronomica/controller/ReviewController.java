@@ -2,6 +2,7 @@ package com.br.reviewgastronomica.controller;
 
 import com.br.reviewgastronomica.domain.review.Review;
 import com.br.reviewgastronomica.domain.user.User;
+import com.br.reviewgastronomica.dtos.UserProfileDTO;
 import com.br.reviewgastronomica.repository.ReviewRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -68,8 +69,16 @@ public class ReviewController {
 
 
   @GetMapping
-  public ResponseEntity<List<Review>> getFeed(){
-    List<Review> feed =this.repository.findAllByOrderByPostedAtDesc();
+  public ResponseEntity<List<Review>> getFeed(@RequestParam(required = false) String category, @RequestParam(required = false) String restaurantName){
+    List<Review> feed;
+
+    if(category != null && !category.isEmpty()){
+      feed = this.repository.findByCategoryOrderByPostedAtDesc(category);
+    } else if (restaurantName != null && !restaurantName.isEmpty()) {
+      feed = this.repository.findByRestaurantNameContainingIgnoreCaseOrderByPostedAtDesc(restaurantName);
+    } else{
+      feed = this.repository.findAllByOrderByPostedAtDesc();
+    }
     return ResponseEntity.ok(feed);
   }
 
@@ -126,6 +135,28 @@ public class ReviewController {
       e.printStackTrace();
       return ResponseEntity.badRequest().body("Erro ao processar like");
     }
+  }
+
+
+
+  @GetMapping("/me")
+  public ResponseEntity<UserProfileDTO> getMyProfile(){
+
+    User loggedUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    Long userId = loggedUser.getId();
+
+    Long total = repository.countByUserId(userId);
+    Double avg = repository.getAverageRatingByUserId(userId);
+    String favCategory = repository.getFavoriteCategoryByUserId(userId);
+    List<Review> myReviews = repository.findByUserIdOrderByPostedAtDesc(userId);
+
+    Double finalAvg = (avg != null) ? Math.round(avg * 10.0) / 10.0 : 0.0;
+    String finalFav = (favCategory != null) ? favCategory : "Nenhuma";
+
+    UserProfileDTO profile =
+            new UserProfileDTO(loggedUser.getName(), total, finalAvg, finalFav, myReviews);
+
+    return ResponseEntity.ok(profile);
   }
 
 }
