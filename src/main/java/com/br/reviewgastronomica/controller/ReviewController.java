@@ -4,10 +4,10 @@ import com.br.reviewgastronomica.domain.review.Review;
 import com.br.reviewgastronomica.domain.user.User;
 import com.br.reviewgastronomica.dtos.UserProfileDTO;
 import com.br.reviewgastronomica.repository.ReviewRepository;
+import com.br.reviewgastronomica.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,6 +24,9 @@ public class ReviewController {
 
   @Autowired
   private ReviewRepository repository;
+
+  @Autowired
+  private UserRepository userRepository;
 
   private final String UPLOAD_DIR = "uploads/";
 
@@ -156,6 +159,24 @@ public class ReviewController {
     UserProfileDTO profile =
             new UserProfileDTO(loggedUser.getName(), total, finalAvg, finalFav, myReviews);
 
+    return ResponseEntity.ok(profile);
+  }
+
+
+  @GetMapping("/user/{userId}")
+  public ResponseEntity<UserProfileDTO> getUserProfile(@PathVariable Long userId){
+    User targetUser = userRepository.findById(userId).orElse(null);
+    if (targetUser == null) return ResponseEntity.notFound().build();
+
+    Long total = repository.countByUserId(userId);
+    Double avg = repository.getAverageRatingByUserId(userId);
+    String favCategory = repository.getFavoriteCategoryByUserId(userId);
+    List<Review> userReviews = repository.findByUserIdOrderByPostedAtDesc(userId);
+
+    Double finalAvg = (avg != null) ? Math.round(avg * 10.0) / 10.0 : 0.0;
+    String finalFav = (favCategory != null) ? favCategory : "Nenhuma";
+
+    UserProfileDTO profile = new UserProfileDTO(targetUser.getName(), total, finalAvg, finalFav, userReviews);
     return ResponseEntity.ok(profile);
   }
 
